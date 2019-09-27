@@ -1,7 +1,9 @@
 package com.example.servicea.config;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.RedeliveryPolicy;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.jms.JmsProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.annotation.EnableJms;
@@ -20,6 +22,15 @@ public class JmsConfig {
     public ActiveMQConnectionFactory activeMQConnectionFactory() {
         ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory();
         activeMQConnectionFactory.setBrokerURL(brokerUrl);
+        activeMQConnectionFactory.setTransactedIndividualAck(true);
+
+        RedeliveryPolicy policy = activeMQConnectionFactory.getRedeliveryPolicy();
+        policy.setInitialRedeliveryDelay(500);
+        policy.setBackOffMultiplier(2);
+        policy.setUseExponentialBackOff(true);
+        policy.setMaximumRedeliveries(2);
+        activeMQConnectionFactory.setRedeliveryPolicy(policy);
+
         return activeMQConnectionFactory;
     }
 
@@ -27,6 +38,7 @@ public class JmsConfig {
     public DefaultJmsListenerContainerFactory jmsListenerContainerFactory() {
         DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
         factory.setConnectionFactory(activeMQConnectionFactory());
+        factory.setSessionTransacted(true);
         return factory;
     }
 
@@ -37,7 +49,8 @@ public class JmsConfig {
 
     @Bean
     public JmsTemplate jmsTemplate() {
-        return new JmsTemplate(cachingConnectionFactory());
+        JmsTemplate jmsTemplate = new JmsTemplate(cachingConnectionFactory());
+        return jmsTemplate;
     }
 
 }
